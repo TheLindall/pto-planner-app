@@ -7,9 +7,12 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, Upload, MoreVertical, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Download, Upload, MoreVertical, Trash2, QrCode, Copy, Check } from "lucide-react"
 import { PlaneAnimation } from "@/components/PlaneAnimation"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
+import LZString from "lz-string"
+import { QRCodeSVG } from "qrcode.react"
 
 const ROULETTE_WORDS = ["a coffee", "a beer", "an ice cream", "a cat", "a pizza", "a hot dog", "toilet paper", "chocolate", "spice", "fleeb juice", "a pair of socks", "Cheez-Its", "nerd clusters", "guac", "tacos"]
 
@@ -86,8 +89,32 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("setup")
   const [moreOpen, setMoreOpen] = useState(false)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
+  const [qrUrl, setQrUrl] = useState("")
+  const [copied, setCopied] = useState(false)
   const { data, setPtoTypes, setEvents } = useStorage()
   const importRef = useRef(null)
+
+  // On load, check if URL has ?data= and auto-import
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const encoded = params.get("data")
+    if (!encoded) return
+    try {
+      const json = LZString.decompressFromEncodedURIComponent(encoded)
+      const parsed = JSON.parse(json)
+      if (!parsed.ptoTypes || !parsed.events) throw new Error("Invalid")
+      if (confirm("Import shared PTO data? This will replace your current data.")) {
+        setPtoTypes(parsed.ptoTypes)
+        setEvents(parsed.events)
+      }
+    } catch {
+      // ignore malformed data
+    } finally {
+      // clean the URL
+      window.history.replaceState({}, "", window.location.pathname)
+    }
+  }, [])
 
   function handleExport() {
     const json = JSON.stringify(data, null, 2)
@@ -128,6 +155,15 @@ export default function App() {
     setResetConfirmOpen(false)
   }
 
+  function handleShare() {
+    const json = JSON.stringify(data)
+    const encoded = LZString.compressToEncodedURIComponent(json)
+    const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`
+    setQrUrl(url)
+    setQrOpen(true)
+    setMoreOpen(false)
+  }
+
   return (
     <TooltipProvider>
     <div className="min-h-screen bg-background flex flex-col">
@@ -138,15 +174,19 @@ export default function App() {
             PTO Planner
           </h1>
 
-          {/* Desktop export/import — hidden on mobile */}
+          {/* Desktop actions — hidden on mobile */}
           <div className="hidden sm:flex gap-2 items-center">
             <Button variant="ghost" size="sm" onClick={handleExport}>
               <Download className="size-4" aria-hidden="true" />
-              Export backup
+              Backup
             </Button>
             <Button variant="ghost" size="sm" onClick={() => importRef.current?.click()}>
               <Upload className="size-4" aria-hidden="true" />
-              Import backup
+              Import
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleShare}>
+              <QrCode className="size-4" aria-hidden="true" />
+              Share
             </Button>
             <input
               ref={importRef}
@@ -212,7 +252,7 @@ export default function App() {
 
             <div className="space-y-2">
               <h2 className="text-lg font-semibold">Your data</h2>
-              <p className="text-muted-foreground text-sm">Everything lives in your browser. No account, no server. Use <span className="font-medium text-foreground">Export backup</span> to save a copy of your data as a JSON file, and <span className="font-medium text-foreground">Import backup</span> to restore it. Good to do before clearing your browser or switching devices.</p>
+              <p className="text-muted-foreground text-sm">Everything lives in your browser. No account, no server. Use <span className="font-medium text-foreground">Backup</span> to save a copy of your data as a JSON file, and <span className="font-medium text-foreground">Import</span> to restore it. Use <span className="font-medium text-foreground">Share</span> to transfer your data to another device via QR code or link.</p>
             </div>
 
             <div className="space-y-2 pt-2 border-t">
@@ -281,13 +321,13 @@ export default function App() {
             <DrawerTitle>More</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-8 flex flex-col gap-3">
-            <Button variant="outline" className="h-11 justify-start gap-3 bg-white" onClick={handleExport}>
-              <Download className="size-4" aria-hidden="true" />
-              Export backup
+            <Button variant="outline" className="h-12 justify-start gap-3 bg-white text-base" onClick={handleExport}>
+              <Download className="size-5" aria-hidden="true" />
+              Backup
             </Button>
-            <Button variant="outline" className="h-11 justify-start gap-3 bg-white" onClick={() => importRef.current?.click()}>
-              <Upload className="size-4" aria-hidden="true" />
-              Import backup
+            <Button variant="outline" className="h-12 justify-start gap-3 bg-white text-base" onClick={() => importRef.current?.click()}>
+              <Upload className="size-5" aria-hidden="true" />
+              Import
             </Button>
             <input
               ref={importRef}
@@ -297,6 +337,10 @@ export default function App() {
               aria-hidden="true"
               onChange={handleImport}
             />
+            <Button variant="outline" className="h-12 justify-start gap-3 bg-white text-base" onClick={handleShare}>
+              <QrCode className="size-5" aria-hidden="true" />
+              Share
+            </Button>
             <Button
               variant="outline"
               className="h-11 justify-start gap-3 bg-white text-destructive hover:text-destructive"
@@ -308,6 +352,26 @@ export default function App() {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Share</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <QRCodeSVG value={qrUrl} size={typeof window !== "undefined" && window.innerWidth < 640 ? 260 : 220} />
+            <p className="text-sm text-muted-foreground text-center">Scan on another device, or copy the link and open it in any browser.</p>
+            <Button variant="outline" className="w-full h-12 gap-2 text-base" onClick={() => {
+              navigator.clipboard.writeText(qrUrl)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            }}>
+              {copied ? <Check className="size-5" /> : <Copy className="size-5" />}
+              {copied ? "Copied!" : "Copy link"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
     </TooltipProvider>
   )
