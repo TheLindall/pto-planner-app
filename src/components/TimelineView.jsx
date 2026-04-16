@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, Fragment } from "react"
 import { generateId } from "@/lib/uuid"
 import { projectAll } from "@/engine/accrual"
 import { cn, formatBalance } from "@/lib/utils"
@@ -130,9 +130,9 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
               const rowBg = "bg-white"
 
               return (
-                <>
+                <Fragment key={month}>
                   {/* Balance row */}
-                  <tr key={month} className={cn(rowBg, monthEvents.length === 0 && "border-b last:border-0")}>
+                  <tr className={cn(rowBg, monthEvents.length === 0 && "border-b last:border-0")}>
                     <td className="px-2 sm:px-4 py-2 text-foreground font-medium">
                       <span className="hidden sm:inline">{formatMonth(month)}</span>
                       <span className="sm:hidden">{formatMonthShort(month)}</span>
@@ -224,7 +224,7 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
                       })}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               )
             })}
           </tbody>

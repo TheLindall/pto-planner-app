@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Download, Upload, MoreVertical, Trash2, QrCode, Copy, Check } from "lucide-react"
+import { Download, Upload, MoreVertical, Trash2, Eraser, QrCode, Copy, Check } from "lucide-react"
 import { PlaneAnimation } from "@/components/PlaneAnimation"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { Tip } from "@/components/Tip"
 import LZString from "lz-string"
 import { QRCodeSVG } from "qrcode.react"
 
@@ -93,27 +93,27 @@ export default function App() {
   const [qrUrl, setQrUrl] = useState("")
   const [copied, setCopied] = useState(false)
   const [qrWarning, setQrWarning] = useState(null) // null | "warn" | "error"
+  const [importConfirmData, setImportConfirmData] = useState(null) // pending parsed import
+  const [importError, setImportError] = useState(false)
+  const [urlImportData, setUrlImportData] = useState(null) // pending url import
   const { data, setPtoTypes, setEvents } = useStorage()
   const importRef = useRef(null)
+  const tabRefs = useRef([])
+  const mobileTabRefs = useRef([])
 
-  // On load, check if URL has ?data= and auto-import
+  // On load, check if URL has ?data= and prompt import via dialog
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const encoded = params.get("data")
     if (!encoded) return
+    window.history.replaceState({}, "", window.location.pathname)
     try {
       const json = LZString.decompressFromEncodedURIComponent(encoded)
       const parsed = JSON.parse(json)
       if (!parsed.ptoTypes || !parsed.events) throw new Error("Invalid")
-      if (confirm("Import shared PTO data? This will replace your current data.")) {
-        setPtoTypes(parsed.ptoTypes)
-        setEvents(parsed.events)
-      }
+      setUrlImportData(parsed)
     } catch {
       // ignore malformed data
-    } finally {
-      // clean the URL
-      window.history.replaceState({}, "", window.location.pathname)
     }
   }, [])
 
@@ -137,11 +137,9 @@ export default function App() {
       try {
         const parsed = JSON.parse(ev.target.result)
         if (!parsed.ptoTypes || !parsed.events) throw new Error("Invalid file")
-        if (!confirm("This will replace all current data. Continue?")) return
-        setPtoTypes(parsed.ptoTypes)
-        setEvents(parsed.events)
+        setImportConfirmData(parsed)
       } catch {
-        alert("Invalid backup file.")
+        setImportError(true)
       } finally {
         e.target.value = ""
       }
@@ -202,36 +200,40 @@ export default function App() {
               accept=".json"
               className="hidden"
               aria-hidden="true"
+              tabIndex={-1}
               onChange={handleImport}
             />
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-lg text-foreground hover:bg-accent transition-colors" aria-label="More options">
-                <MoreVertical className="size-4" aria-hidden="true" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-40">
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => setResetConfirmOpen(true)}
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                  Reset all data
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Tip label="Reset all data">
+              <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10" aria-label="Reset all data" onClick={() => setResetConfirmOpen(true)}>
+                <Eraser className="size-4" aria-hidden="true" />
+              </Button>
+            </Tip>
           </div>
         </div>
 
         {/* Desktop tab nav — hidden on mobile */}
         <nav className="hidden sm:flex max-w-4xl mx-auto px-4 gap-1" aria-label="Main navigation" role="tablist">
-          {TABS.map((tab) => (
+          {TABS.map((tab, i) => (
             <button
               key={tab.id}
+              ref={(el) => { tabRefs.current[i] = el }}
               role="tab"
               aria-selected={activeTab === tab.id}
               aria-controls={`panel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(e) => {
+                let next = -1
+                if (e.key === "ArrowRight") next = (i + 1) % TABS.length
+                if (e.key === "ArrowLeft") next = (i - 1 + TABS.length) % TABS.length
+                if (next !== -1) {
+                  e.preventDefault()
+                  setActiveTab(TABS[next].id)
+                  tabRefs.current[next]?.focus()
+                }
+              }}
               className={cn(
-                "px-3 py-2 text-sm font-medium border-b-2 transition-colors",
+                "px-3 py-2 text-sm font-medium border-b-2 transition-colors outline-none focus-visible:bg-primary/10 focus-visible:underline",
                 activeTab === tab.id
                   ? "border-foreground text-foreground font-semibold"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -284,15 +286,27 @@ export default function App() {
       {/* Mobile bottom nav — hidden on desktop */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 border-t bg-background" aria-label="Main navigation">
         <div className="flex" role="tablist">
-          {TABS.map((tab) => (
+          {TABS.map((tab, i) => (
             <button
               key={tab.id}
+              ref={(el) => { mobileTabRefs.current[i] = el }}
               role="tab"
               aria-selected={activeTab === tab.id}
               aria-controls={`panel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(e) => {
+                let next = -1
+                if (e.key === "ArrowRight") next = (i + 1) % TABS.length
+                if (e.key === "ArrowLeft") next = (i - 1 + TABS.length) % TABS.length
+                if (next !== -1) {
+                  e.preventDefault()
+                  setActiveTab(TABS[next].id)
+                  mobileTabRefs.current[next]?.focus()
+                }
+              }}
               className={cn(
-                "flex-1 py-3 text-sm font-medium transition-colors",
+                "flex-1 py-3 text-sm font-medium transition-colors outline-none focus-visible:bg-primary/10 focus-visible:underline",
                 activeTab === tab.id
                   ? "text-primary font-semibold border-t-2 border-primary -mt-px"
                   : "text-muted-foreground hover:text-primary border-t-2 border-transparent -mt-px"
@@ -304,7 +318,7 @@ export default function App() {
           <button
             onClick={() => setMoreOpen(true)}
             aria-label="More options"
-            className="flex-1 py-3 text-sm font-medium text-primary hover:text-primary transition-colors border-t-2 border-transparent -mt-px flex items-center justify-center"
+            className="flex-1 py-3 text-sm font-medium text-primary hover:text-primary transition-colors border-t-2 border-transparent -mt-px flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <MoreVertical className="size-5" aria-hidden="true" />
           </button>
@@ -319,6 +333,33 @@ export default function App() {
         confirmLabel="Reset all data"
         onConfirm={handleReset}
       />
+
+      <ConfirmDialog
+        open={!!importConfirmData}
+        onOpenChange={(open) => !open && setImportConfirmData(null)}
+        title="Import backup?"
+        message="This will replace all your current data. This cannot be undone."
+        confirmLabel="Import"
+        onConfirm={() => { setPtoTypes(importConfirmData.ptoTypes); setEvents(importConfirmData.events); setImportConfirmData(null) }}
+      />
+
+      <ConfirmDialog
+        open={!!urlImportData}
+        onOpenChange={(open) => !open && setUrlImportData(null)}
+        title="Import shared data?"
+        message="Someone shared their PTO data with you. This will replace your current data."
+        confirmLabel="Import"
+        onConfirm={() => { setPtoTypes(urlImportData.ptoTypes); setEvents(urlImportData.events); setUrlImportData(null) }}
+      />
+
+      <Dialog open={importError} onOpenChange={setImportError}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Invalid backup file</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">That file doesn't look like a valid PTO Planner backup. Try exporting a fresh backup and importing that instead.</p>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile more sheet */}
       <Drawer open={moreOpen} onOpenChange={setMoreOpen}>
@@ -341,6 +382,7 @@ export default function App() {
               accept=".json"
               className="hidden"
               aria-hidden="true"
+              tabIndex={-1}
               onChange={handleImport}
             />
             <Button variant="outline" className="h-12 justify-start gap-3 bg-white text-base" onClick={handleShare}>
@@ -376,7 +418,7 @@ export default function App() {
               </>
             )}
             <p className="text-sm text-muted-foreground text-center">Scan on another device, or copy the link and open it in any browser.</p>
-            {qrWarning !== "error" && <Button variant="outline" className="w-full h-12 gap-2 text-base" onClick={() => {
+            {qrWarning !== "error" && <Button variant="outline" className="w-full h-12 gap-2 text-base" aria-live="polite" onClick={() => {
               navigator.clipboard.writeText(qrUrl)
               setCopied(true)
               setTimeout(() => setCopied(false), 2000)
