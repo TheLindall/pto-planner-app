@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { generateId } from "@/lib/uuid"
 import { projectAll } from "@/engine/accrual"
 import { cn, formatBalance } from "@/lib/utils"
-import { Lock, Plus, Pencil, Trash2, TriangleAlert } from "lucide-react"
+import { LockOpen, Plus, Pencil, Trash2, TriangleAlert } from "lucide-react"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { ResponsiveDialog } from "./ResponsiveDialog"
@@ -81,7 +81,7 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
         <div className="rounded-lg border px-4 py-3 bg-white">
           <p className="text-sm text-muted-foreground mb-3">Starting Balances</p>
           {hasStaleBalance && (
-            <p className="mb-3 text-sm text-amber-600 flex items-center gap-1"><TriangleAlert className="size-3 shrink-0" aria-hidden="true" />Balance values entered over a month ago. Enter the latest balances for accuracy.</p>
+            <p className="mb-3 text-sm text-destructive flex items-center gap-1"><TriangleAlert className="size-3 shrink-0" aria-hidden="true" />Balance values entered over a month ago. Enter the latest balances for accuracy.</p>
           )}
           <div className="flex flex-wrap gap-4">
             {ptoTypes.map((pt) => (
@@ -118,7 +118,7 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
               <th scope="col" className="px-2 sm:px-4 py-2 text-left font-medium text-muted-foreground w-16 sm:w-32">Month</th>
               <th scope="col" className="px-4 py-2 text-left font-medium text-muted-foreground">Events</th>
               {ptoTypes.map((pt) => (
-                <th key={pt.id} scope="col" className="px-4 py-2 text-right font-medium">
+                <th key={pt.id} scope="col" className="px-4 py-2 text-right font-medium whitespace-nowrap">
                   {pt.name}
                 </th>
               ))}
@@ -159,13 +159,14 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
                         <td
                           key={pt.id}
                           className={cn(
-                            "px-4 py-2 text-right font-medium tabular-nums",
-                            isNeg ? "text-destructive" : row.atCap || nearCap ? "text-amber-600" : ""
+                            "px-4 py-2 text-right font-medium tabular-nums whitespace-nowrap",
+                            isNeg ? "text-destructive" : row.atCap || nearCap ? "text-destructive" : ""
                           )}
                           aria-label={isNeg ? `${pt.name}: negative balance` : row.atCap ? `${pt.name}: at annual cap` : undefined}
                         >
                           <span className="inline-flex items-center justify-end gap-1">
-                            {row.atCap && <Lock className="size-3 shrink-0" aria-hidden="true" />}
+                            {isNeg && <TriangleAlert className="size-3 shrink-0" aria-hidden="true" />}
+                            {row.atCap && <LockOpen className="size-3 shrink-0" aria-hidden="true" />}
                             {formatBalance(balance, pt.accrualUnit)}
                           </span>
                         </td>
@@ -232,16 +233,16 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
 
       {/* Inline legend */}
       <div ref={legendRef} className="flex gap-4 text-xs text-muted-foreground" aria-label="Legend">
-        <span><span className="text-destructive font-medium">Red</span>: negative balance</span>
-        <span><span className="text-amber-600 font-medium">Amber</span> + <Lock className="inline size-3" aria-hidden="true" />: at annual cap</span>
+        <span className="inline-flex items-center gap-1"><TriangleAlert className="inline size-3 text-destructive" aria-hidden="true" />: negative balance</span>
+        <span className="inline-flex items-center gap-1"><LockOpen className="inline size-3 text-destructive" aria-hidden="true" />: annual cap</span>
       </div>
 
       {/* Floating legend badge — shown when inline legend is scrolled off */}
       {!legendVisible && (
         <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex gap-4 items-center bg-white border rounded-full px-8 py-2 text-xs shadow-md pointer-events-none whitespace-nowrap" aria-hidden="true">
-          <span><span className="text-destructive font-medium">Red</span>: negative</span>
+          <span className="inline-flex items-center gap-1"><TriangleAlert className="inline size-3 text-destructive" />: negative balance</span>
           <span className="text-muted-foreground">·</span>
-          <span><span className="text-amber-600 font-medium">Amber</span> + <Lock className="inline size-3" />: at cap</span>
+          <span className="inline-flex items-center gap-1"><LockOpen className="inline size-3 text-destructive" />: annual cap</span>
         </div>
       )}
 

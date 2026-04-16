@@ -92,6 +92,7 @@ export default function App() {
   const [qrOpen, setQrOpen] = useState(false)
   const [qrUrl, setQrUrl] = useState("")
   const [copied, setCopied] = useState(false)
+  const [qrWarning, setQrWarning] = useState(null) // null | "warn" | "error"
   const { data, setPtoTypes, setEvents } = useStorage()
   const importRef = useRef(null)
 
@@ -159,6 +160,13 @@ export default function App() {
     const json = JSON.stringify(data)
     const encoded = LZString.compressToEncodedURIComponent(json)
     const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`
+    if (url.length > 4000) {
+      setQrWarning("error")
+    } else if (url.length > 1500) {
+      setQrWarning("warn")
+    } else {
+      setQrWarning(null)
+    }
     setQrUrl(url)
     setQrOpen(true)
     setMoreOpen(false)
@@ -197,10 +205,8 @@ export default function App() {
               onChange={handleImport}
             />
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8" aria-label="More options">
-                  <MoreVertical className="size-4" aria-hidden="true" />
-                </Button>
+              <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-lg text-foreground hover:bg-accent transition-colors" aria-label="More options">
+                <MoreVertical className="size-4" aria-hidden="true" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-40">
                 <DropdownMenuItem
@@ -359,16 +365,25 @@ export default function App() {
             <DialogTitle>Share</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-2">
-            <QRCodeSVG value={qrUrl} size={typeof window !== "undefined" && window.innerWidth < 640 ? window.innerWidth - 64 : 400} />
+            {qrWarning === "error" ? (
+              <p className="text-sm text-destructive text-center">Your data is too large to share via QR or link. Use <span className="font-medium">Backup</span> to export a file instead.</p>
+            ) : (
+              <>
+                <QRCodeSVG value={qrUrl} size={typeof window !== "undefined" && window.innerWidth < 640 ? window.innerWidth - 64 : 400} />
+                {qrWarning === "warn" && (
+                  <p className="text-sm text-destructive text-center">Your data is large — the QR code may be hard to scan. Try using Copy link instead.</p>
+                )}
+              </>
+            )}
             <p className="text-sm text-muted-foreground text-center">Scan on another device, or copy the link and open it in any browser.</p>
-            <Button variant="outline" className="w-full h-12 gap-2 text-base" onClick={() => {
+            {qrWarning !== "error" && <Button variant="outline" className="w-full h-12 gap-2 text-base" onClick={() => {
               navigator.clipboard.writeText(qrUrl)
               setCopied(true)
               setTimeout(() => setCopied(false), 2000)
             }}>
               {copied ? <Check className="size-5" /> : <Copy className="size-5" />}
               {copied ? "Copied!" : "Copy link"}
-            </Button>
+            </Button>}
           </div>
         </DialogContent>
       </Dialog>
