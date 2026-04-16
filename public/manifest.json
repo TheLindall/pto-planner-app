@@ -1,0 +1,17 @@
+{
+  "name": "PTO Planner",
+  "short_name": "PTO Planner",
+  "description": "Plan and track your PTO across multiple accrual buckets.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f5f0",
+  "theme_color": "#0267a6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
