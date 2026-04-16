@@ -354,12 +354,12 @@ export default function App() {
       </Drawer>
 
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>Share</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-2">
-            <QRCodeSVG value={qrUrl} size={typeof window !== "undefined" && window.innerWidth < 640 ? 260 : 220} />
+            <QRCodeSVG value={qrUrl} size={typeof window !== "undefined" && window.innerWidth < 640 ? window.innerWidth - 64 : 400} />
             <p className="text-sm text-muted-foreground text-center">Scan on another device, or copy the link and open it in any browser.</p>
             <Button variant="outline" className="w-full h-12 gap-2 text-base" onClick={() => {
               navigator.clipboard.writeText(qrUrl)
