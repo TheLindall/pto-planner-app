@@ -207,7 +207,7 @@ export default function App() {
           <div role="tabpanel" id="panel-about" aria-label="About" className="space-y-6 max-w-prose">
             <div className="space-y-2">
               <h2 className="text-lg font-semibold">What is this?</h2>
-              <p className="text-muted-foreground text-sm">PTO Planner helps you track and plan your time off across multiple accrual buckets. Set up your PTO types, see your projected balances 24 months out, and add upcoming trips or events so you always know what you have left.</p>
+              <p className="text-muted-foreground text-sm">PTO Planner helps you track and plan your PTO usage across one or more PTO buckets. Add upcoming trips and time off so you can plan your PTO budget in advance.</p>
             </div>
 
             <div className="space-y-2">
@@ -216,7 +216,7 @@ export default function App() {
             </div>
 
             <div className="space-y-2 pt-2 border-t">
-              <p className="text-sm font-medium">Made by Lindall Robinson, artist, designer, human.</p>
+              <p className="text-sm font-medium">Made by <a href="https://lindallrobinson.com" target="_blank" rel="noopener noreferrer" className="border-b border-current hover:opacity-70 transition-opacity">Lindall Robinson</a>, artist, designer, human.</p>
               <a
                 href="https://ko-fi.com/lindall"
                 target="_blank"
