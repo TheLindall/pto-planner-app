@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, Fragment } from "react"
 import { generateId } from "@/lib/uuid"
 import { projectAll } from "@/engine/accrual"
 import { cn, formatBalance } from "@/lib/utils"
-import { LockOpen, Plus, Pencil, Trash2, TriangleAlert } from "lucide-react"
+import { LockOpen, Pencil, Plus, TriangleAlert } from "lucide-react"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { ResponsiveDialog } from "./ResponsiveDialog"
@@ -20,6 +20,11 @@ function formatMonthShort(yyyyMM) {
   return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "short" }) + " '" + String(year).slice(2)
 }
 
+function formatMonthMobile(yyyyMM) {
+  const [year, month] = yyyyMM.split("-")
+  return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "short" })
+}
+
 export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChange, onNavigate }) {
   const [dialog, setDialog] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -34,7 +39,7 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
     return () => observer.disconnect()
   }, [])
 
-  const oneMonthAgo = new Date()
+const oneMonthAgo = new Date()
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
   const hasStaleBalance = ptoTypes.some(
     (pt) => pt.startingBalanceUpdatedAt && new Date(pt.startingBalanceUpdatedAt) < oneMonthAgo
@@ -111,14 +116,14 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border bg-white">
-        <table className="w-full text-sm" aria-label="PTO balance projections">
+      <div className="overflow-hidden rounded-lg border bg-white">
+        <table className="w-full text-sm" style={{ tableLayout: "fixed" }} aria-label="PTO balance projections">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th scope="col" className="px-2 sm:px-4 py-2 text-left font-medium text-muted-foreground w-16 sm:w-32">Month</th>
-              <th scope="col" className="px-4 py-2 text-left font-medium text-muted-foreground">Events</th>
-              {ptoTypes.map((pt) => (
-                <th key={pt.id} scope="col" className="px-4 py-2 text-right font-medium whitespace-nowrap">
+              <th scope="col" className="timeline-month-col pl-3 pr-0 sm:px-2 py-2 text-left font-medium text-muted-foreground"><span className="hidden sm:inline">Month</span></th>
+              <th scope="col" className="px-1 py-2 text-left font-medium text-muted-foreground">Events</th>
+              {ptoTypes.map((pt, pi) => (
+                <th key={pt.id} scope="col" className={cn("timeline-pto-col px-1.5 py-2 text-right font-medium overflow-hidden", pi === ptoTypes.length - 1 && "pr-3")}>
                   {pt.name}
                 </th>
               ))}
@@ -133,11 +138,11 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
                 <Fragment key={month}>
                   {/* Balance row */}
                   <tr className={cn(rowBg, monthEvents.length === 0 && "border-b last:border-0")}>
-                    <td className="px-2 sm:px-4 py-2 text-foreground font-medium">
+                    <td className="pl-3 pr-0 sm:px-2 py-2 text-foreground font-medium text-left">
                       <span className="hidden sm:inline">{formatMonth(month)}</span>
-                      <span className="sm:hidden">{formatMonthShort(month)}</span>
+                      <span className="sm:hidden leading-tight">{formatMonthMobile(month)}<br/>'{month.split("-")[0].slice(2)}</span>
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-1 py-2">
                       <Tip label={`Add event in ${formatMonth(month)}`} side="right">
                         <Button
                           variant="ghost"
@@ -150,7 +155,7 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
                         </Button>
                       </Tip>
                     </td>
-                    {ptoTypes.map((pt) => {
+                    {ptoTypes.map((pt, pi) => {
                       const row = projections[pt.id][i]
                       const balance = row.availableBalance
                       const nearCap = pt.annualCap && !row.atCap && balance >= pt.annualCap * 0.9
@@ -159,7 +164,8 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
                         <td
                           key={pt.id}
                           className={cn(
-                            "px-4 py-2 text-right font-medium tabular-nums whitespace-nowrap",
+                            "px-1.5 py-2 text-right font-medium tabular-nums whitespace-nowrap",
+                            pi === ptoTypes.length - 1 && "pr-3",
                             isNeg ? "text-destructive" : row.atCap || nearCap ? "text-destructive" : ""
                           )}
                           aria-label={isNeg ? `${pt.name}: negative balance` : row.atCap ? `${pt.name}: at annual cap` : undefined}
@@ -167,7 +173,8 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
                           <span className="inline-flex items-center justify-end gap-1">
                             {isNeg && <TriangleAlert className="size-3 shrink-0" aria-hidden="true" />}
                             {row.atCap && <LockOpen className="size-3 shrink-0" aria-hidden="true" />}
-                            {formatBalance(balance, pt.accrualUnit)}
+                            <span className="sm:hidden">{formatBalance(balance, pt.accrualUnit, true)}</span>
+                            <span className="hidden sm:inline">{formatBalance(balance, pt.accrualUnit)}</span>
                           </span>
                         </td>
                       )
@@ -178,44 +185,35 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
                   {monthEvents.map((event, ei) => (
                     <tr
                       key={event.id}
-                      className={cn(rowBg, ei === monthEvents.length - 1 && "border-b", "hover:bg-muted transition-colors")}
+                      className={cn(rowBg, ei === monthEvents.length - 1 && "border-b", "hover:bg-muted transition-colors sm:cursor-default cursor-pointer")}
+                      onClick={(e) => { if (window.innerWidth < 640) { e.stopPropagation(); setDialog({ mode: "edit", event }) } }}
                     >
                       <td><span className="sr-only">{formatMonth(month)}</span></td>
-                      <td className="px-4 py-1 max-w-[140px] sm:max-w-none">
-                        <span className="inline-flex items-center gap-2 flex-nowrap min-w-0">
-                          <span className="text-foreground truncate font-medium">{event.name}</span>
-                          {event.description && <><span className="hidden sm:inline text-muted-foreground">·</span><span className="hidden sm:inline text-muted-foreground truncate">{event.description}</span></>}
-                          {event.budget != null && <><span className="hidden sm:inline text-muted-foreground">·</span><span className="hidden sm:inline text-muted-foreground tabular-nums shrink-0">${event.budget.toLocaleString()}</span></>}
-                          <Tip label={`Edit ${event.name}`}>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={`Edit ${event.name}`}
-                              className="h-auto p-0.5 text-muted-foreground shrink-0"
-                              onClick={() => setDialog({ mode: "edit", event })}
-                            >
-                              <Pencil className="size-3" aria-hidden="true" />
-                            </Button>
-                          </Tip>
-                          <Tip label={`Delete ${event.name}`}>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={`Delete ${event.name}`}
-                              className="hidden sm:inline-flex h-auto p-0.5 text-muted-foreground shrink-0"
-                              onClick={() => handleDelete(event.id, event.name)}
-                            >
-                              <Trash2 className="size-3" aria-hidden="true" />
-                            </Button>
-                          </Tip>
-                        </span>
+                      <td className="px-1 py-0.5 overflow-hidden">
+                        <button
+                          className="group flex flex-col sm:flex-row sm:items-baseline w-full min-w-0 text-left rounded px-1 py-0.5 hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-none transition-colors gap-0 sm:gap-1"
+                          onClick={() => setDialog({ mode: "edit", event })}
+                          aria-label={`Edit ${event.name}`}
+                        >
+                          <span className="inline-flex items-center gap-1 min-w-0 shrink-0">
+                            <span className="text-foreground font-medium truncate">{event.name}</span>
+                          </span>
+                          {(event.description || event.budget != null) && (
+                            <span className="text-xs text-muted-foreground truncate min-w-0"><span className="hidden sm:inline">· </span>
+                              {event.description}
+                              {event.description && event.budget != null && " · "}
+                              {event.budget != null && `$${event.budget.toLocaleString()}`}
+                            </span>
+                          )}
+                          <Pencil className="hidden sm:inline size-3 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity ml-1" aria-hidden="true" />
+                        </button>
                       </td>
-                      {ptoTypes.map((pt) => {
+                      {ptoTypes.map((pt, pi) => {
                         const w = event.withdrawals?.find((w) => w.ptoTypeId === pt.id)
                         return (
                           <td
                             key={pt.id}
-                            className="px-4 py-1 text-right text-muted-foreground tabular-nums"
+                            className={cn("px-1.5 py-1 text-right text-muted-foreground tabular-nums text-xs", pi === ptoTypes.length - 1 && "pr-3")}
                             aria-label={w ? `${w.days} days withdrawn from ${pt.name}` : undefined}
                           >
                             {w ? `−${w.days}d` : ""}
@@ -237,9 +235,9 @@ export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChang
         <span className="inline-flex items-center gap-1"><LockOpen className="inline size-3 text-destructive" aria-hidden="true" />: annual cap</span>
       </div>
 
-      {/* Floating legend badge — shown when inline legend is scrolled off */}
+      {/* Floating legend badge — shown when inline legend scrolls off */}
       {!legendVisible && (
-        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex gap-4 items-center bg-white border rounded-full px-8 py-2 text-xs shadow-md pointer-events-none whitespace-nowrap" aria-hidden="true">
+        <div className="fixed bottom-[56px] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex gap-2 items-center bg-white border rounded-full px-4 py-2 text-xs shadow-md pointer-events-none whitespace-nowrap" aria-hidden="true">
           <span className="inline-flex items-center gap-1"><TriangleAlert className="inline size-3 text-destructive" />: negative balance</span>
           <span className="text-muted-foreground">·</span>
           <span className="inline-flex items-center gap-1"><LockOpen className="inline size-3 text-destructive" />: annual cap</span>

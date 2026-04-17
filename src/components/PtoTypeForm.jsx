@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,7 +18,7 @@ const defaults = {
   startingBalance: "",
 }
 
-export function PtoTypeForm({ initial, onSave, onCancel }) {
+export function PtoTypeForm({ initial, onSave, onCancel, onDelete }) {
   const [form, setForm] = useState({ ...defaults, ...initial })
   const [error, setError] = useState(null)
 
@@ -138,13 +139,21 @@ export function PtoTypeForm({ initial, onSave, onCancel }) {
         />
       </div>
 
-      <div className="flex gap-2 pt-2">
-        <Button type="button" onClick={handleSubmit} className="h-11 sm:h-9 flex-1 sm:flex-none">Save</Button>
-        {onCancel && (
-          <Button type="button" variant="outline" className="h-11 sm:h-9 flex-1 sm:flex-none" onClick={onCancel}>
-            Cancel
+      <div className="flex gap-2 pt-2 items-center">
+        {onDelete && (
+          <Button type="button" variant="ghost" className="h-11 sm:h-9 text-destructive hover:text-destructive shrink-0 px-2" onClick={onDelete}>
+            <Trash2 className="size-4" aria-hidden="true" />
+            Delete
           </Button>
         )}
+        <div className="flex gap-2 flex-1 sm:flex-none sm:ml-auto">
+          {onCancel && (
+            <Button type="button" variant="outline" className="h-11 sm:h-9 flex-1 sm:flex-none" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button type="button" onClick={handleSubmit} className="h-11 sm:h-9 flex-1 sm:flex-none">Save</Button>
+        </div>
       </div>
     </form>
   )

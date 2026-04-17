@@ -202,20 +202,22 @@ export function EventForm({ initial, ptoTypes, onSave, onCancel, onDelete }) {
         </div>
       )}
 
-      <div className="flex gap-2 pt-2">
-        <Button type="button" onClick={handleSubmit} className="h-11 sm:h-9 flex-1 sm:flex-none">Save</Button>
-        {onCancel && (
-          <Button type="button" variant="outline" className="h-11 sm:h-9 flex-1 sm:flex-none" onClick={onCancel}>
-            Cancel
+      <div className="flex gap-2 pt-2 items-center">
+        {onDelete && (
+          <Button type="button" variant="ghost" className="h-11 sm:h-9 text-destructive hover:text-destructive shrink-0 px-2" onClick={onDelete}>
+            <Trash2 className="size-4" aria-hidden="true" />
+            Delete
           </Button>
         )}
+        <div className="flex gap-2 flex-1 sm:flex-none sm:ml-auto">
+          {onCancel && (
+            <Button type="button" variant="outline" className="h-11 sm:h-9 flex-1 sm:flex-none" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button type="button" onClick={handleSubmit} className="h-11 sm:h-9 flex-1 sm:flex-none">Save</Button>
+        </div>
       </div>
-      {onDelete && (
-        <Button type="button" variant="outline" className="sm:hidden w-full h-11 text-destructive hover:text-destructive mt-2" onClick={onDelete}>
-          <Trash2 className="size-4" aria-hidden="true" />
-          Delete event
-        </Button>
-      )}
     </form>
   )
 }

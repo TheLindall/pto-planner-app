@@ -25,7 +25,7 @@
   --color-muted-foreground: #2b65a1;
   --color-accent: oklch(0.97 0 0);
   --color-accent-foreground: #2b65a1;
-  --color-destructive: #c82a21;
+  --color-destructive: #c43f31;
   --color-border: oklch(0.85 0.04 235);
   --color-input: oklch(0.85 0.04 235);
   --color-ring: #2b65a1;
@@ -52,10 +52,28 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+  .timeline-month-col {
+    width: 36px;
+  }
+  .timeline-pto-col {
+    width: 68px;
+  }
+  @media (min-width: 640px) {
+    .timeline-month-col {
+      width: 80px;
+    }
+    .timeline-pto-col {
+      width: 80px;
+    }
+  }
+
   input, textarea, select, button {
     -webkit-appearance: none;
     appearance: none;
     color-scheme: light;
+  }
+  button, [role="button"] {
+    cursor: pointer;
   }
   input:-webkit-autofill,
   input:-webkit-autofill:hover,

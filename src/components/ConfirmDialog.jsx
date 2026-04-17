@@ -6,15 +6,7 @@ export function ConfirmDialog({ open, onOpenChange, title, message, confirmLabel
     <ResponsiveDialog open={open} onOpenChange={onOpenChange} title={title}>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">{message}</p>
-        <div className="flex gap-2 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 sm:h-9 flex-1 sm:flex-none bg-white text-destructive hover:text-destructive"
-            onClick={() => { onConfirm(); onOpenChange(false) }}
-          >
-            {confirmLabel}
-          </Button>
+        <div className="flex gap-2 pt-2 sm:justify-end">
           <Button
             type="button"
             variant="outline"
@@ -22,6 +14,14 @@ export function ConfirmDialog({ open, onOpenChange, title, message, confirmLabel
             onClick={() => onOpenChange(false)}
           >
             Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 sm:h-9 flex-1 sm:flex-none bg-white text-destructive hover:text-destructive"
+            onClick={() => { onConfirm(); onOpenChange(false) }}
+          >
+            {confirmLabel}
           </Button>
         </div>
       </div>

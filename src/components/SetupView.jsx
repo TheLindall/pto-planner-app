@@ -7,7 +7,7 @@ import { ResponsiveDialog } from "./ResponsiveDialog"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { PtoTypeForm } from "./PtoTypeForm"
 import { Tip } from "./Tip"
-import { Pencil, Trash2, Plus, TrendingUp, Wallet, Lock } from "lucide-react"
+import { Pencil, Plus, TrendingUp, Wallet, Lock } from "lucide-react"
 
 function formatAccrual(pt) {
   const period = pt.accrualPeriod.charAt(0).toUpperCase() + pt.accrualPeriod.slice(1)
@@ -76,17 +76,6 @@ export function SetupView({ ptoTypes, onChange }) {
                       <Pencil className="size-3.5" aria-hidden="true" />
                     </Button>
                   </Tip>
-                  <Tip label={`Delete ${pt.name}`}>
-                    <Button
-                      variant="ghost"
-                      size="icon-lg"
-                      aria-label={`Delete ${pt.name}`}
-                      onClick={() => handleDelete(pt.id, pt.name)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="size-3.5" aria-hidden="true" />
-                    </Button>
-                  </Tip>
                 </div>
               </div>
             </CardHeader>
@@ -113,15 +102,6 @@ export function SetupView({ ptoTypes, onChange }) {
                 <Pencil className="size-4" aria-hidden="true" />
                 Edit
               </Button>
-              <Button
-                variant="outline"
-                aria-label={`Delete ${pt.name}`}
-                onClick={() => handleDelete(pt.id, pt.name)}
-                className="flex-1 h-11 bg-white text-destructive hover:text-destructive"
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-                Delete
-              </Button>
             </div>
           </Card>
           </li>
@@ -145,6 +125,7 @@ export function SetupView({ ptoTypes, onChange }) {
             initial={dialog.mode === "edit" ? dialog.pt : undefined}
             onSave={handleSave}
             onCancel={() => setDialog(null)}
+            onDelete={dialog.mode === "edit" ? () => { setDialog(null); handleDelete(dialog.pt.id, dialog.pt.name) } : null}
           />
         )}
       </ResponsiveDialog>
