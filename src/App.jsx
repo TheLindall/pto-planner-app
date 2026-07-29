@@ -14,7 +14,7 @@ import { Tip } from "@/components/Tip"
 import LZString from "lz-string"
 import { QRCodeSVG } from "qrcode.react"
 
-const ROULETTE_WORDS = ["a coffee", "a beer", "an ice cream", "a cat", "a pizza", "a hot dog", "toilet paper", "chocolate", "spice", "fleeb juice", "a pair of socks", "Cheez-Its", "nerd clusters", "guac", "tacos"]
+const ROULETTE_WORDS = ["a coffee", "a beer", "an ice cream", "a pizza", "a hot dog", "toilet paper", "chocolate", "spice", "fleeb juice", "a pair of socks", "Cheez-Its", "nerd clusters", "a side of guac", "tacos", "double stuff Oreos", "an extra sundae topping", "nothing"]
 
 function RouletteWord() {
   const [index, setIndex] = useState(0)
@@ -86,7 +86,7 @@ const TABS = [
 ]
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("setup")
+  const [activeTab, setActiveTab] = useState("timeline")
   const [moreOpen, setMoreOpen] = useState(false)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)

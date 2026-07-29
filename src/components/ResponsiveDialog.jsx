@@ -1,17 +1,6 @@
-import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia("(min-width: 640px)").matches)
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 640px)")
-    const handler = (e) => setIsDesktop(e.matches)
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [])
-  return isDesktop
-}
+import { useIsDesktop } from "@/hooks/useIsDesktop"
 
 export function ResponsiveDialog({ open, onOpenChange, title, children }) {
   const isDesktop = useIsDesktop()
@@ -30,12 +19,12 @@ export function ResponsiveDialog({ open, onOpenChange, title, children }) {
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>{title}</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-8 overflow-y-auto flex-1 min-h-0">
+        <div className="px-4 pb-8 overflow-y-auto overscroll-contain flex-1 min-h-0">
           {children}
         </div>
       </DrawerContent>

@@ -2,13 +2,24 @@ import { useState, useRef, useEffect, Fragment } from "react"
 import { generateId } from "@/lib/uuid"
 import { projectAll } from "@/engine/accrual"
 import { cn, formatBalance } from "@/lib/utils"
-import { LockOpen, Pencil, Plus, TriangleAlert } from "lucide-react"
+import { LockOpen, Pencil, Plus, TriangleAlert, Eraser } from "lucide-react"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { ResponsiveDialog } from "./ResponsiveDialog"
 import { EventForm } from "./EventForm"
 import { Tip } from "./Tip"
 import { Input } from "@/components/ui/input"
+
+function formatHours(value, unit) {
+  const totalHours = unit === "hours" ? value : value * 8
+  return `${Math.round(totalHours)}h`
+}
+
+// Days view is presentation-only: floor to whole days (backend stays exact).
+function formatDays(value, unit) {
+  const totalDays = unit === "hours" ? value / 8 : value
+  return `${Math.floor(totalDays)}d`
+}
 
 function formatMonth(yyyyMM) {
   const [year, month] = yyyyMM.split("-")
@@ -28,6 +39,13 @@ function formatMonthMobile(yyyyMM) {
 export function TimelineView({ ptoTypes, events, onEventsChange, onPtoTypesChange, onNavigate }) {
   const [dialog, setDialog] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [viewUnit, setViewUnit] = useState(() => {
+    try { return localStorage.getItem("pto-view-unit") || "days" } catch { return "days" }
+  })
+  useEffect(() => {
+    try { localStorage.setItem("pto-view-unit", viewUnit) } catch { /* ignore */ }
+  }, [viewUnit])
+  const [confirmClear, setConfirmClear] = useState(false)
   const legendRef = useRef(null)
   const [legendVisible, setLegendVisible] = useState(true)
 
@@ -50,8 +68,16 @@ const oneMonthAgo = new Date()
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">24-Month Projection</h2>
         <div className="flex flex-col items-center gap-4 py-8">
-          <p className="text-muted-foreground text-sm">No PTO buckets set up yet.</p>
-          <Button className="h-11 sm:h-9" onClick={() => onNavigate("setup")}>Go make a bucket</Button>
+          <div className="text-muted-foreground text-sm max-w-md space-y-3 rounded-lg border border-input bg-primary/5 px-6 py-5 flex flex-col items-center">
+            <p className="text-center font-semibold">Welcome to PTO Planner!</p>
+            <ul className="list-disc space-y-1 pl-5 self-stretch">
+              <li>Create PTO buckets with accrual rules.</li>
+              <li>Use the timeline to see how much PTO you'll have in the future.</li>
+              <li>Add events and see remaining balances.</li>
+            </ul>
+            <p className="text-center font-semibold">Make a bucket to get started!</p>
+            <Button className="h-11 sm:h-9 mt-1" onClick={() => onNavigate("setup")}>Go make a bucket</Button>
+          </div>
         </div>
       </div>
     )
@@ -82,35 +108,70 @@ const oneMonthAgo = new Date()
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold mb-3">24-Month Projection</h2>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="text-lg font-semibold">24-Month Projection</h2>
+          <div className="flex items-center gap-1.5 shrink-0">
+          <Tip label="Clear all events">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40"
+              aria-label="Clear all events"
+              disabled={events.length === 0}
+              onClick={() => setConfirmClear(true)}
+            >
+              <Eraser className="size-4" aria-hidden="true" />
+            </Button>
+          </Tip>
+          <div className="inline-flex shrink-0 rounded-lg border border-input bg-white p-0.5" role="group" aria-label="Balance unit">
+            {["days", "hours"].map((u) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setViewUnit(u)}
+                aria-pressed={viewUnit === u}
+                className={cn(
+                  "px-3 py-1 text-sm rounded-md transition-colors capitalize",
+                  viewUnit === u ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+          </div>
+        </div>
         <div className="rounded-lg border px-4 py-3 bg-white">
           <p className="text-sm text-muted-foreground mb-3">Starting Balances</p>
           {hasStaleBalance && (
-            <p className="mb-3 text-sm text-destructive flex items-center gap-1"><TriangleAlert className="size-3 shrink-0" aria-hidden="true" />Balance values entered over a month ago. Enter the latest balances for accuracy.</p>
+            <p className="mb-3 rounded-md bg-destructive/10 px-2.5 py-1.5 text-sm text-destructive flex items-center gap-1.5"><TriangleAlert className="size-3.5 shrink-0" aria-hidden="true" />Balance values entered over a month ago. Enter the latest balances for accuracy.</p>
           )}
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             {ptoTypes.map((pt) => (
-              <div key={pt.id} className="flex items-center gap-2">
+              <div key={pt.id} className="flex items-center gap-2 w-full sm:w-auto">
                 <label htmlFor={`balance-${pt.id}`} className="text-sm font-medium whitespace-nowrap">
                   {pt.name}
                 </label>
-                <Input
-                  id={`balance-${pt.id}`}
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={pt.startingBalance ?? 0}
-                  onChange={(e) =>
-                    onPtoTypesChange(
-                      ptoTypes.map((p) =>
-                        p.id === pt.id ? { ...p, startingBalance: Number(e.target.value), startingBalanceUpdatedAt: new Date().toISOString() } : p
+                <span className="flex-1 sm:hidden" aria-hidden="true" />
+                <div className="relative">
+                  <Input
+                    id={`balance-${pt.id}`}
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={pt.startingBalance ?? 0}
+                    onChange={(e) =>
+                      onPtoTypesChange(
+                        ptoTypes.map((p) =>
+                          p.id === pt.id ? { ...p, startingBalance: Number(e.target.value), startingBalanceUpdatedAt: new Date().toISOString() } : p
+                        )
                       )
-                    )
-                  }
-                  className="w-24 text-right"
-                  aria-label={`Starting balance for ${pt.name} in ${pt.accrualUnit}`}
-                />
-                <span className="text-xs text-muted-foreground">{pt.accrualUnit}</span>
+                    }
+                    className="w-28 text-right pr-12"
+                    aria-label={`Starting balance for ${pt.name} in ${pt.accrualUnit}`}
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs text-muted-foreground">{pt.accrualUnit}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -173,8 +234,11 @@ const oneMonthAgo = new Date()
                           <span className="inline-flex items-center justify-end gap-1">
                             {isNeg && <TriangleAlert className="size-3 shrink-0" aria-hidden="true" />}
                             {row.atCap && <LockOpen className="size-3 shrink-0" aria-hidden="true" />}
-                            <span className="sm:hidden">{formatBalance(balance, pt.accrualUnit, true)}</span>
-                            <span className="hidden sm:inline">{formatBalance(balance, pt.accrualUnit)}</span>
+                            {viewUnit === "hours" ? (
+                              <span>{formatHours(balance, pt.accrualUnit)}</span>
+                            ) : (
+                              <span>{formatDays(balance, pt.accrualUnit)}</span>
+                            )}
                           </span>
                         </td>
                       )
@@ -214,9 +278,9 @@ const oneMonthAgo = new Date()
                           <td
                             key={pt.id}
                             className={cn("px-1.5 py-1 text-right text-muted-foreground tabular-nums text-xs", pi === ptoTypes.length - 1 && "pr-3")}
-                            aria-label={w ? `${w.days} days withdrawn from ${pt.name}` : undefined}
+                            aria-label={w ? `${viewUnit === "hours" ? w.days * 8 : w.days} ${viewUnit} withdrawn from ${pt.name}` : undefined}
                           >
-                            {w ? `−${w.days}d` : ""}
+                            {w ? (viewUnit === "hours" ? `−${w.days * 8}h` : `−${Math.floor(w.days)}d`) : ""}
                           </td>
                         )
                       })}
@@ -253,6 +317,15 @@ const oneMonthAgo = new Date()
         onConfirm={handleConfirmDelete}
       />
 
+      <ConfirmDialog
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        title="Clear all events?"
+        message="This will remove all events and cannot be undone."
+        confirmLabel="Clear all"
+        onConfirm={() => onEventsChange([])}
+      />
+
       <ResponsiveDialog
         open={!!dialog}
         onOpenChange={(open) => !open && setDialog(null)}
@@ -262,6 +335,7 @@ const oneMonthAgo = new Date()
           <EventForm
             initial={dialog.mode === "edit" ? dialog.event : { month: dialog.month }}
             ptoTypes={ptoTypes}
+            viewUnit={viewUnit}
             onSave={handleSave}
             onCancel={() => setDialog(null)}
             onDelete={dialog.mode === "edit" ? () => { handleDelete(dialog.event.id, dialog.event.name) } : null}

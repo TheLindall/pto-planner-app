@@ -3,7 +3,7 @@ import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ResponsiveSelect } from "@/components/ResponsiveSelect"
 
 const inputClass = "h-11 sm:h-9"
 const triggerClass = "h-11 sm:h-9"
@@ -71,36 +71,36 @@ export function PtoTypeForm({ initial, onSave, onCancel, onDelete }) {
         </div>
         <div className="grid gap-1.5">
           <Label>Unit</Label>
-          <Select value={form.accrualUnit} onValueChange={(v) => set("accrualUnit", v)}>
-            <SelectTrigger className={triggerClass}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="days">Days</SelectItem>
-              <SelectItem value="hours">Hours</SelectItem>
-            </SelectContent>
-          </Select>
+          <ResponsiveSelect
+            value={form.accrualUnit}
+            onValueChange={(v) => set("accrualUnit", v)}
+            className={triggerClass}
+            options={[
+              { value: "days", label: "Days" },
+              { value: "hours", label: "Hours" },
+            ]}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">
           <Label>Accrual Period</Label>
-          <Select value={form.accrualPeriod} onValueChange={(v) => set("accrualPeriod", v)}>
-            <SelectTrigger className={triggerClass}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="annually">Annually</SelectItem>
-            </SelectContent>
-          </Select>
+          <ResponsiveSelect
+            value={form.accrualPeriod}
+            onValueChange={(v) => set("accrualPeriod", v)}
+            className={triggerClass}
+            options={[
+              { value: "weekly", label: "Weekly" },
+              { value: "monthly", label: "Monthly" },
+              { value: "annually", label: "Annually" },
+            ]}
+          />
         </div>
       </div>
 
       <div className="grid gap-1.5">
-        <Label htmlFor="annualCap">Annual Cap (optional)</Label>
+        <Label htmlFor="annualCap">Annual Cap ({form.accrualUnit}) (optional)</Label>
         <Input
           id="annualCap"
           type="number"

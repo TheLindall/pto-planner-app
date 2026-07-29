@@ -109,7 +109,7 @@ export function SetupView({ ptoTypes, onChange }) {
       </ul>}
 
       {ptoTypes.length > 0 && (
-        <Button className="sm:hidden w-full h-11" onClick={() => setDialog({ mode: "add" })}>
+        <Button className="sm:hidden w-full h-11 mt-4" onClick={() => setDialog({ mode: "add" })}>
           <Plus className="mr-1 size-4" aria-hidden="true" />
           Add Bucket
         </Button>

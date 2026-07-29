@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ResponsiveSelect } from "@/components/ResponsiveSelect"
 import { Trash2 } from "lucide-react"
 
 const inputClass = "h-11 sm:h-9"
@@ -42,7 +42,14 @@ const defaults = {
   budget: "",
 }
 
-export function EventForm({ initial, ptoTypes, onSave, onCancel, onDelete }) {
+export function EventForm({ initial, ptoTypes, viewUnit = "days", onSave, onCancel, onDelete }) {
+  // Withdrawals are stored canonically in days. When the timeline is toggled to
+  // "hours", the entry field shows/accepts hours (8 hrs/day) but still persists days.
+  const toDisplay = (days) =>
+    days === "" || days == null ? "" : viewUnit === "hours" ? Number(days) * 8 : days
+  const toStored = (displayValue) =>
+    displayValue === "" ? "" : viewUnit === "hours" ? Number(displayValue) / 8 : displayValue
+
   const [errors, setErrors] = useState({})
   const [form, setForm] = useState(() => {
     const base = { ...defaults, ...initial }
@@ -61,11 +68,12 @@ export function EventForm({ initial, ptoTypes, onSave, onCancel, onDelete }) {
     setForm((f) => ({ ...f, [field]: value }))
   }
 
-  function setWithdrawal(ptoTypeId, value) {
+  function setWithdrawal(ptoTypeId, displayValue) {
+    const stored = toStored(displayValue)
     setForm((f) => ({
       ...f,
       withdrawals: f.withdrawals.map((w) =>
-        w.ptoTypeId === ptoTypeId ? { ...w, days: value } : w
+        w.ptoTypeId === ptoTypeId ? { ...w, days: stored } : w
       ),
     }))
   }
@@ -82,7 +90,7 @@ export function EventForm({ initial, ptoTypes, onSave, onCancel, onDelete }) {
       budget: form.budget !== "" ? Number(form.budget) : null,
       withdrawals: form.withdrawals
         .filter((w) => w.days !== "" && Number(w.days) > 0)
-        .map((w) => ({ ptoTypeId: w.ptoTypeId, days: Math.round(Number(w.days)) })),
+        .map((w) => ({ ptoTypeId: w.ptoTypeId, days: Number(w.days) })),
     })
   }
 
@@ -110,39 +118,32 @@ export function EventForm({ initial, ptoTypes, onSave, onCancel, onDelete }) {
             const availableMonths = projMonths.filter((m) => m.year === selYear)
             return (
               <div className="flex gap-2">
-                <Select
+                <ResponsiveSelect
                   value={selMonth ? String(selMonth) : ""}
                   onValueChange={(m) => setField("month", toYYYYMM(selYear, Number(m)))}
                   disabled={!selYear}
-                >
-                  <SelectTrigger className={`flex-1 ${triggerClass}`}>
-                    <SelectValue placeholder="Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableMonths.map(({ month }) => (
-                      <SelectItem key={month} value={String(month)}>
-                        {MONTH_NAMES[month - 1]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
+                  placeholder="Month"
+                  className={`flex-1 ${triggerClass}`}
+                  options={availableMonths.map(({ month }) => ({
+                    value: String(month),
+                    label: MONTH_NAMES[month - 1],
+                  }))}
+                />
+                <ResponsiveSelect
                   value={selYear ? String(selYear) : ""}
                   onValueChange={(y) => {
                     const yr = Number(y)
                     const firstMonth = projMonths.find((m) => m.year === yr)?.month
                     setField("month", toYYYYMM(yr, selMonth && projMonths.find((m) => m.year === yr && m.month === selMonth) ? selMonth : firstMonth))
                   }}
-                >
-                  <SelectTrigger className={`w-24 ${triggerClass}`} aria-label="Year">
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableYears.map((y) => (
-                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  aria-label="Year"
+                  placeholder="Year"
+                  className={`w-24 ${triggerClass}`}
+                  options={availableYears.map((y) => ({
+                    value: String(y),
+                    label: String(y),
+                  }))}
+                />
               </div>
             )
           })()}
@@ -184,14 +185,14 @@ export function EventForm({ initial, ptoTypes, onSave, onCancel, onDelete }) {
                 <div key={pt.id} className="flex items-center justify-between px-3 py-2 gap-3">
                   <span className="text-sm">
                     {pt.name}
-                    <span className="text-muted-foreground ml-1 text-xs">days</span>
+                    <span className="text-muted-foreground ml-1 text-xs">({viewUnit})</span>
                   </span>
                   <Input
                     type="number"
                     min="0"
                     step="1"
                     placeholder="0"
-                    value={w?.days ?? ""}
+                    value={toDisplay(w?.days ?? "")}
                     onChange={(e) => setWithdrawal(pt.id, e.target.value)}
                     className={`w-24 text-right ${inputClass}`}
                   />
