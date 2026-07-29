@@ -16,9 +16,11 @@ function formatHours(value, unit) {
 }
 
 // Days view is presentation-only: floor to whole days (backend stays exact).
+// Round off float noise first so a mathematically-zero (or clean-integer)
+// balance doesn't dip to -1d / n-1d from a trailing -0.0000000001.
 function formatDays(value, unit) {
   const totalDays = unit === "hours" ? value / 8 : value
-  return `${Math.floor(totalDays)}d`
+  return `${Math.floor(Number(totalDays.toFixed(6)))}d`
 }
 
 function formatMonth(yyyyMM) {
